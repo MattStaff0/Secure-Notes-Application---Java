@@ -1,10 +1,10 @@
 # Secure-Notes-Application---Java
-Hi, this is one of my first major projects using Java and SQLite. This notes app is pretty basic in terms of UI design but functional. I plan to update this project with more features, such as UI improvements, better error handling, and password strength validation.
+Hi, this is one of my first major projects using Java and SQLite. This notes app is pretty basic in terms of UI design but functional. I plan to update this project with more features like UI improvements and better error handling.
 
 Overview of Secure Notes App:
 Project Structure
 The project consists of multiple Java classes organized into packages: secure.notes.
-It follows a Model-View-Controller (MVC) architecture, where different classes handle UI (View), database operations (Model), and user interactions (Controller).
+It follows a Model-View-Controller (MVC) architecture, where different classes handle UI (View), database operations (Model), security, and user interactions (Controller).
 Main Components
 
 HomePage (View):
@@ -26,6 +26,10 @@ NewLoginHandler and LoginHandler (Controller):
 Responsible for handling user authentication and account creation logic.
 NewLoginHandler processes new user registrations, including hashing passwords and storing user information in the database.
 LoginHandler verifies existing user credentials during login attempts.
+
+PasswordChecker and RealTimePassChecker (Security)
+Check passwords for strengths and returns to see if they are weak.
+RealTimePassChecker is a thread that continuously checks the password, providing real-time updates about its strength.
 
 Functionality and Features
 User Authentication: Users can log in with existing usernames and passwords.
