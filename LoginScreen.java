@@ -8,6 +8,8 @@ import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.Set;
 import java.awt.*;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 
 import javax.swing.*;
 
@@ -20,6 +22,7 @@ public class LoginScreen extends JFrame {
 
     private JLabel username = new JLabel("Username:");
     private JLabel password = new JLabel("Password:");
+    static JLabel strength = new JLabel("Password Strength:");
 
     JTextField usernameInput = new JTextField(15);  // Set columns to control width
     JPasswordField passwordInput = new JPasswordField(15);  // Use JPasswordField for passwords
@@ -32,7 +35,11 @@ public class LoginScreen extends JFrame {
 
     char[] specialChars = {
         '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '-', '+', '=', '[', ']', '{', '}', ',', '.', '/', '\\',
-        '|', '<', '>', '?', '~', ';'
+        '|', '<', '>', '?', '~', ';', ' '
+    };
+    char[] passSpecialChars = {
+        '=', '[', ']', '{', '}', '/', '\\',
+        '|', '<', '>', '~', ' ', '.', ','
     };
 
 
@@ -62,8 +69,23 @@ public class LoginScreen extends JFrame {
         // Set font and color for labels
         this.username.setFont(new Font("Times New Roman", Font.BOLD, 15));
         this.password.setFont(new Font("Times New Roman", Font.BOLD, 15));
+        LoginScreen.strength.setFont(new Font("Times New Roman", Font.BOLD, 15));
         this.username.setForeground(Color.WHITE);
         this.password.setForeground(Color.WHITE);
+        LoginScreen.strength.setForeground(Color.WHITE);
+
+        this.passwordInput.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyReleased(KeyEvent e) {
+                String password = new String(passwordInput.getPassword());
+                PasswordChecker checker = new PasswordChecker(password);
+                String strength = checker.passwordStrength();
+                LoginScreen.strength.setText("Password Strength: " + strength);
+            }
+        });
+
+        RealTimePassChecker realTimeChecker = new RealTimePassChecker(this.passwordInput, LoginScreen.strength);
+        realTimeChecker.start();
 
         // Create layout constraints
         GridBagConstraints gbc = new GridBagConstraints();
@@ -93,16 +115,23 @@ public class LoginScreen extends JFrame {
         gbc.fill = GridBagConstraints.HORIZONTAL;
         this.loginAreaPanel.add(this.passwordInput, gbc);
 
-        // Add new user button
+        // Add password Strength Label
         gbc.gridx = 0;
         gbc.gridy = 2;
+        gbc.fill = GridBagConstraints.NONE;
+        this.loginAreaPanel.add(LoginScreen.strength, gbc);
+
+
+        // Add new user button
+        gbc.gridx = 0;
+        gbc.gridy = 3;
         gbc.fill = GridBagConstraints.NONE;
         gbc.anchor = GridBagConstraints.CENTER;
         this.loginAreaPanel.add(this.newUserButton, gbc);
 
         // Add login button
         gbc.gridx = 1;
-        gbc.gridy = 2;
+        gbc.gridy = 3;
         gbc.anchor = GridBagConstraints.CENTER;
         this.loginAreaPanel.add(this.loginButton, gbc);
 
@@ -149,8 +178,8 @@ public class LoginScreen extends JFrame {
             JOptionPane.showMessageDialog(this, "Please provide both username and password.");
         }
 
-        else if(containsSpecialChars(username, this.specialChars) || containsSpecialChars(password, this.specialChars)){
-            JOptionPane.showMessageDialog(this, "No special characters allowed.");
+        else if(containsSpecialChars(username, this.specialChars) || containsSpecialChars(password, this.passSpecialChars)){
+            JOptionPane.showMessageDialog(this, "Particular special characters not allowed.");
         }
         else{
         this.newLoginHandler = new NewLoginHandler(username, password, this);
@@ -165,8 +194,8 @@ public class LoginScreen extends JFrame {
             JOptionPane.showMessageDialog(this, "Please provide both username and password.");
         }
 
-        else if (containsSpecialChars(username, this.specialChars) || containsSpecialChars(password, this.specialChars)){
-            JOptionPane.showMessageDialog(this, "No special characters allowed.");
+        else if (containsSpecialChars(username, this.specialChars) || containsSpecialChars(password, this.passSpecialChars)){
+            JOptionPane.showMessageDialog(this, "Particular special characters not allowed.");
         } 
         else{
             this.returnLoginHandler = new LoginHandler(username, password, this);
@@ -395,8 +424,95 @@ private boolean checkValidPassword(String username, String pass) {
             return false; // Return false if an error occurs
     }
     }
-    
+}
+
+class PasswordChecker {
+    private String password;
+    private static final Set<Character> lowercaseLetters = new HashSet<>();
+    private static final Set<Character> uppercaseLetters = new HashSet<>();
+    private static final Set<Character> numbers = new HashSet<>();
+    private static final Set<Character> specialChars = new HashSet<>();
+
+    static {
+        for (char c = 'a'; c <= 'z'; c++) {
+            lowercaseLetters.add(c);
+        }
+        for (char c = 'A'; c <= 'Z'; c++) {
+            uppercaseLetters.add(c);
+        }
+        for (char c = '0'; c <= '9'; c++) {
+            numbers.add(c);
+        }
+        String specialCharacters = "!@#$%^&*()-+";
+        for (char c : specialCharacters.toCharArray()) {
+            specialChars.add(c);
+        }
+    }
+
+    public PasswordChecker(String password) {
+        this.password = password;
+    }
+
+    public String passwordStrength() {
+        int passLen = password.length();
+        boolean hasLower = false;
+        boolean hasUpper = false;
+        boolean hasDigit = false;
+        boolean hasSpecial = false;
+
+        for (char c : password.toCharArray()) {
+            if (lowercaseLetters.contains(c)) hasLower = true;
+            if (uppercaseLetters.contains(c)) hasUpper = true;
+            if (numbers.contains(c)) hasDigit = true;
+            if (specialChars.contains(c)) hasSpecial = true;
+        }
+
+        if (hasLower && hasUpper && hasDigit && hasSpecial) {
+            if (passLen >= 12) {
+                return "Strong";
+            } else if (passLen > 8) {
+                return "Moderate";
+            } else {
+                return "Weak - Too Short";
+            }
+        } else {
+            return "Weak";
+        }
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+}
 
 
+class RealTimePassChecker extends Thread{
+    private JPasswordField passwordInput;
+    private JLabel strength;
+    private LoginHandler loginHandler;
+    private NewLoginHandler newLoginHandler;
+    private LoginScreen parentComponent;
+
+    public RealTimePassChecker(JPasswordField pass, JLabel strength){
+        this.passwordInput = pass;
+        this.strength = strength;
+    }
+
+    @Override
+    public void run() {
+        while (true) {
+            try {
+                Thread.sleep(500); // Check every 500ms
+                SwingUtilities.invokeLater(() -> {
+                    String password = new String(passwordInput.getPassword());
+                    PasswordChecker checker = new PasswordChecker(password);
+                    String strength = checker.passwordStrength();
+                    this.strength.setText("Password Strength: " + strength);
+                });
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 }
 
